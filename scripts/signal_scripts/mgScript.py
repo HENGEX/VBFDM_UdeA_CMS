@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from os import system
 from numpy.random import randint
 from numpy import loadtxt
