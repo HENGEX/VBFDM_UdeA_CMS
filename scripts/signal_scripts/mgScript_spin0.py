@@ -6,7 +6,7 @@ from numpy import loadtxt
 
 # paths
 rcPath = "/home/santiago/VBF_DMSimp_spin0_EWKExcluded/Cards/run_card.dat"
-pcPath = "//home/santiago/VBF_DMSimp_spin0_EWKExcluded/Cards/param_card.dat"
+pcPath = "/home/santiago/VBF_DMSimp_spin0_EWKExcluded/Cards/param_card.dat"
 mlPath = "./massList.txt"
 binPath = "/home/santiago/VBF_DMSimp_spin0_EWKExcluded/bin/generate_events"
 
