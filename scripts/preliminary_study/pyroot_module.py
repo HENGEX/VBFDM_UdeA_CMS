@@ -20,8 +20,10 @@ ROOT.gSystem.AddDynamicPath(EXROOT_PATH)
 ROOT.gSystem.Load("libExRootAnalysis.so");
 
 try:
-    ROOT.gInterpreter.Declare('#include "{}classes/DelphesClasses.h"'.format(DELPHES_PATH))
-    ROOT.gInterpreter.Declare('#include "{}ExRootTreeReader.h"'.format(EXROOT_PATH))
+    print('#include "'+os.path.join(DELPHES_PATH,'classes/DelphesClasses.h')+'"')
+    ROOT.gInterpreter.Declare('#include "'+os.path.join(DELPHES_PATH,'classes/DelphesClasses.h')+'"')
+    print('#include "'+os.path.join(EXROOT_PATH,'ExRootTreeReader.h')+'"')
+    ROOT.gInterpreter.Declare('#include "'+os.path.join(EXROOT_PATH,'ExRootTreeReader.h')+'"')
     print("Delphes classes imported")
 except:
     pass
