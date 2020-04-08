@@ -108,7 +108,12 @@ def initParamCard():
 initParamCard()
 ml = loadtxt(mlPath)
 
-for i in range(ml.shape[0]):
+if len(ml) == 2:
     modRunCard()
-    modParamCard(ml[i,0], ml[i,1])
+    modParamCard(ml[0], ml[1])
     system(binPath)
+else:
+    for i in range(ml.shape[0]):
+        modRunCard()
+        modParamCard(ml[i,0], ml[i,1])
+        system(binPath)
