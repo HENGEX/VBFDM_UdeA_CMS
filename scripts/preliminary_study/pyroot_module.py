@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import ROOT
+from array import array
 import sys, os
 
 # setting paths for root, delphes and exroot
@@ -17,13 +18,11 @@ ROOT.gSystem.AddDynamicPath(DELPHES_PATH)
 ROOT.gSystem.Load("libDelphes.so");
 
 ROOT.gSystem.AddDynamicPath(EXROOT_PATH)
-ROOT.gSystem.Load("libExRootAnalysis.so");
+ROOT.gSystem.Load("libExRootAnalysis.so")
 
 try:
-    print('#include "'+os.path.join(DELPHES_PATH,'classes/DelphesClasses.h')+'"')
-    ROOT.gInterpreter.Declare('#include "'+os.path.join(DELPHES_PATH,'classes/DelphesClasses.h')+'"')
-    print('#include "'+os.path.join(EXROOT_PATH,'ExRootTreeReader.h')+'"')
-    ROOT.gInterpreter.Declare('#include "'+os.path.join(EXROOT_PATH,'ExRootTreeReader.h')+'"')
+    ROOT.gInterpreter.Declare('#include "'+os.path.join(DELPHES_PATH, 'classes/DelphesClasses.h')+'"')
+    ROOT.gInterpreter.Declare('#include "'+os.path.join(EXROOT_PATH, 'ExRootTreeReader.h')+'"')
     print("Delphes classes imported")
 except:
     pass
@@ -56,7 +55,7 @@ def JetMass(jet):
     jets = [ROOT.TLorentzVector(), ROOT.TLorentzVector()]
     [jets[i].SetPtEtaPhiE(jet[i].PT, jet[i].Eta, jet[i].Phi, jet[i].Mass) for i in range(2)]
     return abs((jets[0]+jets[1]).M())      
-    
+
 def InvariantMass(jet,i,j):
     """
     Returns the invariant mass for a system made out 
@@ -153,7 +152,7 @@ def CutFlow(sig_cut, bac_cut, cut_keys, n_cuts=8, ns=50000, nb=50000, L=25000, s
     sig_cut,bac_cut:  dictionaries with the signal 
                       and background cuts
     cut_keys:         dictionary with the cuts keys
-    n_cuts:           number of cuts 
+    n_cuts:           number of available cuts 
     L:                integrated luminosity in pb^-1
     
     ns,nb:            number of signal and background events
@@ -162,45 +161,72 @@ def CutFlow(sig_cut, bac_cut, cut_keys, n_cuts=8, ns=50000, nb=50000, L=25000, s
                       background events in pb
 
     """
+    # number of applied cuts
+    N_cuts = n_cuts - sig_cut.values().count(0)
+
+    # modified cut dics
+    s_cut = {key:value for key, value in zip(sig_cut.keys(), sig_cut.values()) if value !=0}
+    b_cut = {key:value for key, value in zip(bac_cut.keys(), bac_cut.values()) if value !=0}
+    c_keys = {"cut{}".format(i):cut_keys["cut{}".format(i)] for i in range(N_cuts)}
+
     # weights for signal and background events
     ws = L*sigmas/ns
     wb = L*sigmab/nb
 
-    # cut data
-    s1 = pd.Series(sig_cut, dtype=float)
-    s2 = pd.Series(bac_cut, dtype=float)
-    s3 = pd.Series(cut_keys)
-
+    # dataframes
+    s1 = pd.Series(s_cut, dtype=float) if N_cuts!=8 else pd.Series(sig_cut, dtype=float)
+    s2 = pd.Series(b_cut, dtype=float) if N_cuts!=8 else pd.Series(bac_cut, dtype=float)
+    s3 = pd.Series(c_keys) if N_cuts!=8 else pd.Series(cut_keys) 
+    
     # cut flow tables
     df1 = pd.concat([s3,s1,s2], axis=1, keys=["${\\textbf{[bold]: GeV}}$","S","B"])
-    df1["Z"] = df1["S"]/np.sqrt(df1["S"]+df1["B"])            # significance
-    df1["Z_w"] = ws*df1["S"]/np.sqrt(ws*df1["S"]+wb*df1["B"]) # weighted significance
+    
+    df1["Z"] = ws*df1["S"]/np.sqrt(ws*df1["S"]+wb*df1["B"]) 
 
-    df2 = pd.DataFrame(index=["cut{}".format(i) for i in range(n_cuts)], columns=["${\\textbf{[bold]: GeV}}$","s_c","s_r","b_a","b_r"])
-
-    for i in range(n_cuts):
+    df2 = pd.DataFrame(index=["cut{}".format(i) for i in range(N_cuts)],
+                       columns=["${\\textbf{[bold]: GeV}}$","s_c","s_r","b_a","b_r"])
+    
+    for i in range(N_cuts):
         df2.iloc[i,0] = cut_keys["cut{}".format(i)] 
         
     for i in range(1,5):
         df2.iloc[0,i] = 1
 
-    for i in range(1,n_cuts):
+    for i in range(1,N_cuts):
         df2.iloc[i,1] = df1.iloc[i,1]/df1.iloc[0,1]
         df2.iloc[i,3] = df1.iloc[i,2]/df1.iloc[0,2]
         df2.iloc[i,2] = df1.iloc[i,1]/df1.iloc[i-1,1]
         df2.iloc[i,4] = df1.iloc[i,2]/df1.iloc[i-1,2]
 
-    return df1,df2
+    return df1, df2
 
+# classes to build jet and met objects 
+class GetJetObject:
 
-# for signal and background data
+    def __init__(self, jet):
+        
+        self.PT = jet.Pt()
+        self.Eta = jet.Eta()
+        self.Phi = jet.Phi()
+        self.Mass = jet.M()
+            
+class GetMetObject:
+
+    def __init__(self, met):
+ 
+        self.MET = met[0]
+        self.Eta = met[1]
+        self.Phi = met[2]
+
+        
+# class to process signal and background data
 class Data:
         
     # default value for non-default cuts
     apply_cut = False
 
     # number of jets to book histograms
-    numJets = 4
+    numJets = 6
 
     # histograms bins, minimum and maximum limits
     # to use in the method Histograms 
@@ -223,6 +249,7 @@ class Data:
     def __init__(self, data_path, name, tree_name="Delphes"):
         
         self.name = name
+        self.treeName = tree_name
 	self.chain = ROOT.TChain(tree_name)
 	self.chain.Add(data_path)
 	self.number_of_events = self.chain.GetEntries()
@@ -242,119 +269,217 @@ class Data:
         """
         Book histograms for VBF objects/variables
         """
-	self.hPT = [ROOT.TH1F("PT[{}]_{}".format(i+1,self.name),
+	self.hPT = [ROOT.TH1F("PT[{}]_{}".format(i+1,self.name+self.treeName),
                               "jet[{}] P_T".format(i+1),
                               self.hPT_feature[0],
                               self.hPT_feature[1],
                               self.hPT_feature[2])
                     for i in range(self.numJets)]
         
-	self.hEta = [ROOT.TH1F("Eta[{}]_{}".format(i+1,self.name),
+	self.hEta = [ROOT.TH1F("Eta[{}]_{}".format(i+1,self.name+self.treeName),
                                "jet[{}] \eta".format(i+1),
                                self.hEta_feature[0],
                                self.hEta_feature[1],
                                self.hEta_feature[2])
                      for i in range(self.numJets)]
         
-	self.hDeltaEta = [ROOT.TH1F("DeltaEtaMetJet[{}]_{}".format(i+1,self.name),
+	self.hDeltaEta = [ROOT.TH1F("DeltaEtaMetJet[{}]_{}".format(i+1,self.name+self.treeName),
                                     "|\Delta\eta(j{},MET)|".format(i+1),
                                     self.hDeltaEta_feature[0],
                                     self.hDeltaEta_feature[1],
                                     self.hDeltaEta_feature[2])
                           for i in range(self.numJets)]
         
-        self.hDeltaPhiMetJet = [ROOT.TH1F("DeltaPhiMetJet[{}]_{}".format(i+1,self.name),
+        self.hDeltaPhiMetJet = [ROOT.TH1F("DeltaPhiMetJet[{}]_{}".format(i+1,self.name+self.treeName),
                                           "|\Delta\phi(j{},MET)|".format(i+1),
                                           self.hDeltaPhiMetJet_feature[0],
                                           self.hDeltaPhiMetJet_feature[1],
                                           self.hDeltaPhiMetJet_feature[2])
                                 for i in range(self.numJets)]
         
-        self.hDeltaPhi = ROOT.TH1F("DeltaPhi_{}".format(self.name),
+        self.hDeltaPhi = ROOT.TH1F("DeltaPhi_{}".format(self.name+self.treeName),
                                    "|\Delta\phi(jet1,jet2)|",
                                    self.hDeltaPhi_feature[0],
                                    self.hDeltaPhi_feature[1],
                                    self.hDeltaPhi_feature[2])
         
-	self.hMass = ROOT.TH1F("Mass_{}".format(self.name),
+	self.hMass = ROOT.TH1F("Mass_{}".format(self.name+self.treeName),
                                "M(j1,j2)",
                                self.hMass_feature[0],
                                self.hMass_feature[1],
                                self.hMass_feature[2])
         
-	self.hPTdiv = ROOT.TH1F("PTdiv_{}".format(self.name),
+	self.hPTdiv = ROOT.TH1F("PTdiv_{}".format(self.name+self.treeName),
                                 "P_{T}(j1)/P_{T}(j2)", 
                                 self.hPTdiv_feature[0],
                                 self.hPTdiv_feature[1],
                                 self.hPTdiv_feature[2])
         
-	self.hMetET = ROOT.TH1F("MetET_{}".format(self.name),
+	self.hMetET = ROOT.TH1F("MetET_{}".format(self.name+self.treeName),
                                 "MET_ET", 
                                 self.hMetET_feature[0],
                                 self.hMetET_feature[1],
                                 self.hMetET_feature[2])
         
-	self.hMetPhi = ROOT.TH1F("MetPhi_{}".format(self.name),
+	self.hMetPhi = ROOT.TH1F("MetPhi_{}".format(self.name+self.treeName),
                                  "MET_PHI", 
                                  self.hMetPhi_feature[0],
                                  self.hMetPhi_feature[1],
                                  self.hMetPhi_feature[2])
         
-        self.hDeltaEtaJet = ROOT.TH1F("DeltaEtaJet_{}".format(self.name),
+        self.hDeltaEtaJet = ROOT.TH1F("DeltaEtaJet_{}".format(self.name+self.treeName),
                                       "|\Delta\eta(j1,j2)|",
                                       self.hDeltaEtaJet_feature[0],
                                       self.hDeltaEtaJet_feature[1],
                                       self.hDeltaEtaJet_feature[2])
         
-        self.hDeltaPhiMax = ROOT.TH1F("DeltaPhiMax_{}".format(self.name),
+        self.hDeltaPhiMax = ROOT.TH1F("DeltaPhiMax_{}".format(self.name+self.treeName),
                                       "|\Delta\phi(j_i,j_j)| Max", 
                                       self.hDeltaPhiMax_feature[0],
                                       self.hDeltaPhiMax_feature[1],
                                       self.hDeltaPhiMax_feature[2])
         
-        self.hMassMax = ROOT.TH1F("MassMax_{}".format(self.name),
+        self.hMassMax = ROOT.TH1F("MassMax_{}".format(self.name+self.treeName),
                                   "M(ji,jj) Max", 
                                   self.hMassMax_feature[0],
                                   self.hMassMax_feature[1],
                                   self.hMassMax_feature[2])
         
-        self.hPTdivMax = ROOT.TH1F("PTdivMax_{}".format(self.name),
+        self.hPTdivMax = ROOT.TH1F("PTdivMax_{}".format(self.name+self.treeName),
                                    "P_{T}(ji)/P_{T}(jj) Max", 
                                    self.hPTdivMax_feature[0],
                                    self.hPTdivMax_feature[1],
                                    self.hPTdivMax_feature[2])
         
-        self.hDeltaEtaJetMax = ROOT.TH1F("hDeltaEtaJetMax_{}".format(self.name),
+        self.hDeltaEtaJetMax = ROOT.TH1F("hDeltaEtaJetMax_{}".format(self.name+self.treeName),
                                          "|\Delta\eta(jj,MET)| Max", 
                                          self.hDeltaEtaJetMax_feature[0],
                                          self.hDeltaEtaJetMax_feature[1],
                                          self.hDeltaEtaJetMax_feature[2])
 
+
+    def Convert(self, outFileName, treeName="vbf_udea_tree"):
+
+        # Reading  tree branches
+	tree = ROOT.ExRootTreeReader(self.chain)
+	jet = tree.UseBranch("Jet")
+	met = tree.UseBranch("MissingET")
         
-    def Fill(self, jet_cut=True, deltaEta_cut=None, invmass_cut=None, met_cut=None, h_cut=None, delta_phi_cut=None,
+        # defining a new tree and the file to store the data
+        newTree = ROOT.TTree(treeName, "newTree")
+        myFile = ROOT.TFile(outFileName, "RECREATE")
+
+        # variables to store jets and met
+        Jets = [ROOT.TLorentzVector()
+                for _ in range(self.n_jets)]
+
+        MetMET = array('f', [0])
+        MetPhi = array('f', [0])
+        MetEta = array('f', [0])
+
+        # setting new tree branches
+        [newTree.Branch('Jet{}'.format(i), Jets[i])
+         for i in range(self.n_jets)]
+                
+        newTree.Branch('MetPhi', MetPhi, 'MetPhi/F')
+        newTree.Branch('MetEta', MetEta, 'MetEta/F')
+        newTree.Branch('MetMET', MetMET, 'MetMET/F')
+
+        none = [-1, -1, -1, -1]
+        
+        # looping over events 
+        for event in range(self.number_of_events):
+            # load event
+            tree.ReadEntry(event)
+            
+            N_jets = jet.GetEntries()
+
+            # writing data to a new tree
+            if N_jets == 0:
+                [Jets[i].SetPtEtaPhiM(*none) for i in range(self.n_jets)]
+
+            if N_jets == self.n_jets:
+                [Jets[i].SetPtEtaPhiM(jet.At(i).PT,jet.At(i).Eta,jet.At(i).Phi,jet.At(i).Mass) for i in range(self.n_jets)]    
+
+            for n in range(1,self.n_jets):
+                if N_jets == n:
+                    [Jets[i].SetPtEtaPhiM(jet.At(i).PT,jet.At(i).Eta,jet.At(i).Phi,jet.At(i).Mass) if i<n else Jets[i].SetPtEtaPhiM(*none) for i in range(self.n_jets)]
+                
+            MetPhi[0] = met.At(0).Phi
+            MetEta[0] = met.At(0).Eta
+            MetMET[0] = met.At(0).MET
+
+            # filling new tree
+            newTree.Fill()
+
+        #Writing and closing the files
+        newTree.Write()
+        myFile.Close()
+        
+    # build jet and met objects
+    def GetObjects(self):
+
+        Jets, MET = {}, {}
+        J, M = {}, {}
+
+        if self.treeName == "Delphes":
+
+            # Reading  tree branches
+	    self.tree = ROOT.ExRootTreeReader(self.chain)
+	    self.jet = self.tree.UseBranch("Jet")
+	    self.met = self.tree.UseBranch("MissingET")
+
+            for event in range(self.number_of_events):
+                
+                self.tree.ReadEntry(event)
+                
+                Jets[event] = [self.jet.At(i) for i in range(self.jet.GetEntries())]
+                MET[event] = self.met.At(0)
+                
+            return Jets, MET
+        
+        else:
+            
+            for event in range(self.number_of_events):
+            
+                self.chain.GetEntry(event)
+            
+                # reading a vbf_udea_tree
+                jet = [getattr(self.chain, "Jet{}".format(i))
+                       for i in range(self.numJets)]
+            
+                MET[event] = [getattr(self.chain, "Met{}".format(i))
+                              for i in ["MET","Eta","Phi"]]
+
+                Jets[event] = [jets for jets in jet if jets.M() > 0]
+
+                J[event] = [GetJetObject(jet) for jet in Jets[event]]
+                
+                M[event] = GetMetObject(MET[event])
+            
+            return J, M
+        
+    def Fill(self, jets, met, jet_cut=True, deltaEta_cut=None, invmass_cut=None, met_cut=None, h_cut=None, delta_phi_cut=None,
              jet_cut_value=2, deltaEta_cut_value=4, invmass_cut_value=1000, met_cut_value=200, h_cut_value=200, delta_phi_cut_value=0.5):        
-        """
-        Fill created histograms
-       
-        <>_cut: True or False. Default value: True. Apply cut to <> object/variable         
-        <>_cut_value: value for the <> cut.
-        """
+
+
         # setting initial cuts values to class variable apply_cut
         #cut_list = [deltaEta_cut, invmass_cut, met_cut, h_cut, delta_phi_cut]
         #for cut in cut_list:
-        #    if cut is None:
+        #    if cut == None:
         #        cut = self.apply_cut
-        if deltaEta_cut is None:
-            deltaEta_cut = self.apply_cut
-        if invmass_cut is None:
-            invmass_cut = self.apply_cut
-        if met_cut is None:
-            met_cut = self.apply_cut
-        if h_cut is None:
-            h_cut = self.apply_cut
-        if delta_phi_cut is None:
-            delta_phi_cut = self.apply_cut
 
+        if deltaEta_cut == None:
+            deltaEta_cut = self.apply_cut
+        if invmass_cut == None:
+            invmass_cut = self.apply_cut
+        if met_cut == None:
+            met_cut = self.apply_cut
+        if h_cut == None:
+            h_cut = self.apply_cut
+        if delta_phi_cut == None:
+            delta_phi_cut = self.apply_cut
+            
         # creating dictionaries for the cuts
         self.math_cuts = ["Number of jets $\geq$ {}".format(jet_cut_value),
                           "$\eta (j_1) * \eta (j_2) < 0$",
@@ -368,35 +493,26 @@ class Data:
         self.cuts_keys["cut0"] = "${\mathbf{P_T>30}}$, $|\eta(j)|<5$"
         self.cuts =  {"cut{}".format(i):0 for i in range(1,8)}
         self.cuts["cut0"] = self.number_of_events
-        
-	# Reading  tree branches
-	self.tree = ROOT.ExRootTreeReader(self.chain)
-	self.jet = self.tree.UseBranch("Jet")
-	self.met = self.tree.UseBranch("MissingET")
-        self.H = self.tree.UseBranch("ScalarHT")
 
-        # dictionaries for jets and met
-        # (one item per event)
         self.Jets = {}
         self.MET = {}
-
+            
         # looping over events 
         for event in range(self.number_of_events):
             # load event
-            self.tree.ReadEntry(event)
-
+            if self.treeName == "Delphes":
+                self.tree.ReadEntry(event)
+            else:
+                self.chain.GetEntry(event)                
+                
             # cut0:  jets with tranverse momentum greater
             # than 30 GeV and absolute pseudorapidity smaller than 5
-            jets = [self.jet.At(i)
-                    for i in range(self.jet.GetEntries())
-                    if self.jet.At(i).PT > 30 and abs(self.jet.At(i).Eta) < 5]
-                                
-            self.Jets[event] = jets
-            self.MET[event] = self.met.At(0)
+            self.Jets[event] = [jet for jet in jets[event] if jet.PT > 30 and abs(jet.Eta) < 5]
+            self.MET[event] = met[event]
 
             if jet_cut == True:
                 # Cut1: minimum number of jets per event
-                if len(self.Jets[event]) < 2: continue
+                if len(self.Jets[event]) < jet_cut_value: continue
                 self.cuts["cut1"] += 1
             
                 # Cut2: jets in opposite hemispheres
@@ -421,15 +537,15 @@ class Data:
                 if self.MET[event].MET < met_cut_value:continue
                 self.cuts["cut5"] += 1
 
+                                   
             NJets = len(self.Jets[event]) if len(self.Jets[event]) <= self.numJets else self.numJets
-
+                
             # cut6: 
             if h_cut == True:
                 h = 0
                 for jet in range(NJets):
                     h += abs(self.Jets[event][jet].PT)
-                if h < h_cut_value:
-                    continue
+                if h < h_cut_value: continue
                 self.cuts["cut6"] += 1
 
             # cut7: difference on azimuthal angle
@@ -442,8 +558,7 @@ class Data:
                         delta.append(False)
                     else:
                         delta.append(True)
-                if np.sum(delta) < 4:
-                    continue
+                if np.sum(delta) < 4: continue
                 self.cuts["cut7"] += 1
             
             i, j, JsMass = 0, 0, 0
@@ -467,17 +582,8 @@ class Data:
   	    self.hMass.Fill(JetMass(self.Jets[event]))
             self.hDeltaPhi.Fill(abs(DeltaPhi(self.Jets[event][0].Phi,self.Jets[event][1].Phi)))
             self.hDeltaEtaJet.Fill(abs(self.Jets[event][0].Eta-self.Jets[event][1].Eta))
-
+            
             self.hPTdivMax.Fill(self.Jets[event][i].PT/self.Jets[event][j].PT)
             self.hMassMax.Fill(JsMass)
             self.hDeltaPhiMax.Fill(abs(DeltaPhi(self.Jets[event][i].Phi,self.Jets[event][j].Phi)))
-            self.hDeltaEtaJetMax.Fill(abs(self.Jets[event][i].Eta-self.Jets[event][j].Eta))       
-
-
-
-            
-        
-
-            
-            
-            
+            self.hDeltaEtaJetMax.Fill(abs(self.Jets[event][i].Eta-self.Jets[event][j].Eta))   
