@@ -79,11 +79,11 @@ def PlotHisto(h, show=True, save=True, savePath="./Histograms/", title=None):
     h.Draw()
     if show==True:
         canvas.Draw()
-    if save==True:
-        if savePath == "./Histograms/":
-            os.system("mkdir Histograms")
+    if save==True:        
+        if not os.path.exists(savePath):
+            os.makedirs(savePath)
         name = "{}".format(h.GetName())
-        canvas.SaveAs(savePath+name.replace("background","")+"significance.png")
+        canvas.SaveAs(os.path.join(savePath, name.replace("background","")+"significance.png"))
 
 def PlotHistos(hs, hb, show=True, save=True, savePath="./Histograms/", title=None):
     """
@@ -110,10 +110,10 @@ def PlotHistos(hs, hb, show=True, save=True, savePath="./Histograms/", title=Non
     if show==True:
         canvas.Draw()
     if save==True:
-        if savePath == "./Histograms/":
-            os.system("mkdir Histograms")
+        if not os.path.exists(savePath):
+            os.makedirs(savePath)
         name = "{}".format(hs.GetName())
-        canvas.SaveAs(savePath+name.replace("signal","")+".png")
+        canvas.SaveAs(os.path.join(savePath, name.replace("signal","")+".png"))
 
 def Significance(hs, hb, ns=50000, nb=50000, L=25000, sigmab=72.38, sigmas=13.76, title=None):
     """
