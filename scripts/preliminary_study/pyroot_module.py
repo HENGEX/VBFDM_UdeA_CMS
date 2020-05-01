@@ -79,11 +79,11 @@ def PlotHisto(h, show=True, save=True, savePath="./Histograms/", title=None):
     h.Draw()
     if show==True:
         canvas.Draw()
-    if save==True:
-        if savePath == "./Histograms/":
-            os.system("mkdir Histograms")
+    if save==True:        
+        if not os.path.exists(savePath):
+            os.makedirs(savePath)
         name = "{}".format(h.GetName())
-        canvas.SaveAs(savePath+name.replace("background","")+"significance.png")
+        canvas.SaveAs(os.path.join(savePath, name.replace("background","")+"significance.png"))
 
 def PlotHistos(hs, hb, show=True, save=True, savePath="./Histograms/", title=None):
     """
@@ -103,17 +103,17 @@ def PlotHistos(hs, hb, show=True, save=True, savePath="./Histograms/", title=Non
     hs.Draw("pe")
     hb.Draw("h,same")
 
-    legend = ROOT.TLegend(0.6,0.6,0.9,0.9)
+    legend = ROOT.TLegend(0.6,0.8,0.9,0.9)
     legend.AddEntry(hs, "Signal")
     legend.AddEntry(hb, "Background")
     legend.Draw()
     if show==True:
         canvas.Draw()
     if save==True:
-        if savePath == "./Histograms/":
-            os.system("mkdir Histograms")
+        if not os.path.exists(savePath):
+            os.makedirs(savePath)
         name = "{}".format(hs.GetName())
-        canvas.SaveAs(savePath+name.replace("signal","")+".png")
+        canvas.SaveAs(os.path.join(savePath, name.replace("signal","")+".png"))
 
 def Significance(hs, hb, ns=50000, nb=50000, L=25000, sigmab=72.38, sigmas=13.76, title=None):
     """
