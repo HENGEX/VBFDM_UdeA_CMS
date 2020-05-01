@@ -103,7 +103,7 @@ def PlotHistos(hs, hb, show=True, save=True, savePath="./Histograms/", title=Non
     hs.Draw("pe")
     hb.Draw("h,same")
 
-    legend = ROOT.TLegend(0.6,0.6,0.9,0.9)
+    legend = ROOT.TLegend(0.6,0.8,0.9,0.9)
     legend.AddEntry(hs, "Signal")
     legend.AddEntry(hb, "Background")
     legend.Draw()
