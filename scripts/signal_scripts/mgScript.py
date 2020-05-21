@@ -5,10 +5,10 @@ from numpy.random import randint
 from numpy import loadtxt
 
 # paths
-rcPath = "/home/santiago/Desktop/VBF_DMSimp_EWKExcluded/Cards/run_card.dat"
-pcPath = "/home/santiago/Desktop/VBF_DMSimp_EWKExcluded/Cards/param_card.dat"
+rcPath = "/home/santiago/VBF_DMSimp_EWKExcluded/Cards/run_card.dat"
+pcPath = "/home/santiago/VBF_DMSimp_EWKExcluded/Cards/param_card.dat"
 mlPath = "./massList.txt"
-binPath = "/home/santiago/Desktop/VBF_DMSimp_EWKExcluded/bin/generate_events"
+binPath = "/home/santiago/VBF_DMSimp_EWKExcluded/bin/generate_events"
 
 # Initial parameters for the param_card
 couplingDic = {

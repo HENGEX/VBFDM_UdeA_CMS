@@ -115,7 +115,39 @@ def PlotHistos(hs, hb, show=True, save=True, savePath="./Histograms/", title=Non
         name = "{}".format(hs.GetName())
         canvas.SaveAs(os.path.join(savePath, name.replace("signal","")+".png"))
 
-def Significance(hs, hb, ns=50000, nb=50000, L=25000, sigmab=72.38, sigmas=13.76, title=None):
+def sigGreaterThan(hz,hs,hb):
+    """
+    @brief Computes the significance of the "greater than" type
+    @param hz Histogram to fill with the significance value
+    @param hs Signal histogram
+    @param hb Background histogram
+    """
+    for i in range(1,hz.GetNbinsX()):
+        s = hs.Integral(i+1,hz.GetNbinsX())
+        b = hb.Integral(i+1,hz.GetNbinsX())
+        if s+b != 0:
+            hz.SetBinContent(i+1,s/np.sqrt(s+b))
+        else:
+            hz.SetBinContent(i+1,0)
+    return hz
+    
+def sigLessThan(hz,hs,hb):
+    """
+    @brief Computes the significance of the "less than" type
+    @param hz Histogram to fill with the significance value
+    @param hs Signal histogram
+    @param hb Background histogram
+    """
+    for i in range(1,hz.GetNbinsX()):
+        s = hs.Integral(1,i+1)
+        b = hb.Integral(1,i+1)
+        if s+b != 0:
+            hz.SetBinContent(i+1,s/np.sqrt(s+b))
+        else:
+            hz.SetBinContent(i+1,0)
+    return hz    
+
+def Significance(hs, hb, ns=50000, nb=50000, L=25000, sigmab=72.38, sigmas=13.76, title=None, lessThan=False):
     """
     Returns a significance histogram made out 
     of the signal and background histograms hs and hb
@@ -135,16 +167,11 @@ def Significance(hs, hb, ns=50000, nb=50000, L=25000, sigmab=72.38, sigmas=13.76
         hz.SetTitle("{} Significance".format(hs.GetTitle()))
     else:
         hz.SetTitle(title)
-        
-    for i in range(1,hz.GetNbinsX()):
-        s = hs.Integral(i+1,hz.GetNbinsX())
-        b = hb.Integral(i+1,hz.GetNbinsX())
-        if s+b != 0:
-            hz.SetBinContent(i+1,s/np.sqrt(s+b))
-        else:
-            hz.SetBinContent(i+1,0)
 
-    return hz
+    if lessThan == False:
+        return sigGreaterThan(hz,hs,hb)
+    else:
+        return sigLessThan(hz,hs,hb)
 
 def CutFlow(sig_cut, bac_cut, cut_keys, n_cuts=8, ns=50000, nb=50000, L=25000, sigmab=72.38, sigmas=13.76):
     """
