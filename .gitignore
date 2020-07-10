@@ -3,3 +3,4 @@ scripts/preliminary_study/data
 scripts/preliminary_study/images
 scripts/signal_scripts/*.txt
 *.pyc
+*.py~
