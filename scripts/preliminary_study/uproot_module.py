@@ -72,9 +72,12 @@ class Data:
                 #arr = self.signal.array(s) #load a lazy array
                 #is a list-like leaf?
                 if l.index is not None:
-                    print(b.name + "." + l.name + f"[{l.index}]")
-                    df = self.signal.arrays(branches=[name], outputtype=pd.DataFrame)
-                    self.dataframe = self.dataframe.join(df)
+                    c_names = [b.name + "." + l.name + f"[{i}]" for i in l.index]
+                    df = self.signal.pandas.df(name).unstack()
+                    for i in l.index:
+                        aux = df[(name, i)].to_frame(c_names[i])
+                        self.dataframe = self.dataframe.join(aux)
+
                 else:
                     df = self.signal.arrays(branches=[name], outputtype=pd.DataFrame).astype("float64")
                     self.dataframe = self.dataframe.join(df)
