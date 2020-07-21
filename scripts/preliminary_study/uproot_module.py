@@ -55,11 +55,11 @@ class Data:
         self.parseBranches(*leafs)
         self.signal = None
         self.dataframe = None
+        self.cuts = {}
 
     def setSignal(self, signal_path, tree_name):
         self.signal = uproot.open(signal_path)[tree_name]
         self._setupDataframe()
-
     
     def _setupDataframe(self):
 
@@ -72,19 +72,14 @@ class Data:
                 #arr = self.signal.array(s) #load a lazy array
                 #is a list-like leaf?
                 if l.index is not None:
-                    c_names = [b.name + "." + l.name + f"[{i}]" for i in l.index]
                     df = self.signal.pandas.df(name).unstack()
                     for i in l.index:
-                        aux = df[(name, i)].to_frame(c_names[i])
+                        aux = df[(name, i)].to_frame(name + f"[{i}]")
                         self.dataframe = self.dataframe.join(aux)
 
                 else:
                     df = self.signal.arrays(branches=[name], outputtype=pd.DataFrame).astype("float64")
                     self.dataframe = self.dataframe.join(df)
-
-
-                    
-        
     
     def parseBranches(self, *leafs):
         br = self.branches
@@ -111,6 +106,38 @@ class Data:
         for b in self.branches:
             b.printLeafs()
 
+    def addCut(self,cutName, cutFunc):
+        """
+        Add a new cut operation
+        :param cutName: string with the name of the cut
+        :param cutFunc: Function to perform the cut. This function
+                        must receives a data frame as input and returns
+                        another data frame
+        """
+        self.cuts[cutName] = cutFunc
+
+    def cutFlow(self):
+        """
+        Perform the cut-flow
+        :return: Data frame with cut-flow information
+        """
+
+        df = self.dataframe
+        cuts = {r"$no\ cuts$": df.shape[0]}
+
+        for c in self.cuts:
+            df = self.cuts[c](df)
+            cuts[c] = df.shape[0]
+
+        return cuts
+
+
+
+
+# def cut1(df):
+#     df = df[df["Jet.PT[0]"]<2000]
+#     return df
+#
 # SIGNAL_PATH = "/home/santiago/VBF_DMSimp_spin0_EWKExcluded/Events/run_18/DMSimpSpin0_MY5000_MX1000_07042020.root"
 # TREE_NAME = "Delphes"
 #
@@ -120,3 +147,6 @@ class Data:
 # d.setSignal(SIGNAL_PATH, TREE_NAME)
 #
 # print(d.dataframe.head())
+#
+# d.addCut("cut_1",cut1)
+# d.cutFlow()
