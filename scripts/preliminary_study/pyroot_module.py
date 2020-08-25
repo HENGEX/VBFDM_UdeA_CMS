@@ -62,8 +62,8 @@ def InvariantMass(jet,i,j):
     of the i-th and j-th jets in the array jet
     """
     jets = [ROOT.TLorentzVector(), ROOT.TLorentzVector()]
-    jets[0].SetPtEtaPhiE(jet[i].PT, jet[i].Eta, jet[i].Phi, jet[i].Mass)
-    jets[1].SetPtEtaPhiE(jet[j].PT, jet[j].Eta, jet[j].Phi, jet[j].Mass)
+    jets[0].SetPtEtaPhiM(jet[i].PT, jet[i].Eta, jet[i].Phi, jet[i].Mass)
+    jets[1].SetPtEtaPhiM(jet[j].PT, jet[j].Eta, jet[j].Phi, jet[j].Mass)
     return abs((jets[0]+jets[1]).M())
     
 def PlotHisto(h, show=True, save=True, savePath="./Histograms/", title=None):
