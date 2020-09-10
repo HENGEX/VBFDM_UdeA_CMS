@@ -18,6 +18,9 @@ def DeltaPhi(phi1,phi2):
             phi[i] += 2*np.pi
     return phi
 
+def invariant_mass(pt1, pt2, eta1, eta2, phi1, phi2):
+    return np.sqrt(2*pt1*pt2*(np.cosh(eta1 - eta2) - np.cos(phi1 - phi2)))
+
 #============================
 #        Default Cuts
 #============================
@@ -56,8 +59,8 @@ def cut5(df):
 
 def cut6(df):
     #     # max invariant mass >= 1000
-    #     mask = df.max_inv_mass >= 1000
-    #     df = df.loc[mask,:]
+    mask = df.max_inv_mass >= 1000
+    df = df.loc[mask,:]
     return df
 
 def cut7(df):
@@ -99,6 +102,24 @@ class VBFDM:
         for i in range(N_JETS):
             fc = lambda df: DeltaPhi(df[f"Jet.Phi[{i}]"], df["MissingET.Phi"])
             self.add_column(f"DPhi_MET_J{i}", fc)
+
+        # Invariant mass
+        n = []
+        for i in range(N_JETS):
+            for j in range(N_JETS):
+                fc = lambda df: invariant_mass(df[f"Jet.PT[{i}]"],
+                                               df[f"Jet.PT[{j}]"],
+                                               df[f"Jet.Eta[{i}]"],
+                                               df[f"Jet.Eta[{j}]"],
+                                               df[f"Jet.Phi[{i}]"],
+                                               df[f"Jet.Phi[{j}]"])
+                n.append(f"InvMass_J{i}_J{j}")
+                self.add_column(f"InvMass_J{i}_J{j}",fc)
+
+        fc = lambda df: df[n].max(axis=1)
+        self.add_column("max_inv_mass",fc)
+
+        
 
     def add_signal(self, path):
         self.signal.setSignal(path, TREE_NAME)
