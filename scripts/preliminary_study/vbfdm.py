@@ -4,18 +4,15 @@ import numpy as np
 
 
 TREE_NAME = "Delphes"
-N_JETS = 6
+N_JETS = 5
 
 def DeltaPhi(phi1,phi2):
     """
     Returns the difference of phi1 and phi2
     """
     phi = phi1-phi2
-    for i in range(phi.shape[0]):
-        if phi[i] >= np.pi:
-            phi[i] -= 2*np.pi
-        elif phi[i] < -1*np.pi:
-            phi[i] += 2*np.pi
+    phi[phi >= np.pi] -= 2*np.pi
+    phi[phi < -np.pi] += 2*np.pi
     return phi
 
 def invariant_mass(pt1, pt2, eta1, eta2, phi1, phi2):
@@ -64,7 +61,7 @@ def cut6(df):
     return df
 
 def cut7(df):
-    mask = np.abs(df[[f"DPhi_MET_J{i}" for i in range(N_JETS)]] ).min(axis=1) > 0.5
+    mask = np.abs(df[[f"DPhi_MET_J{i}" for i in range(N_JETS)]] ).min(axis=1) >= 0.5
     df = df.loc[mask, :]
     return df
 
