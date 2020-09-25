@@ -4,7 +4,7 @@ import numpy as np
 
 
 TREE_NAME = "Delphes"
-N_JETS = 5
+N_JETS = 4
 
 def DeltaPhi(phi1,phi2):
     """
