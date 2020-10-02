@@ -1,6 +1,7 @@
 from uproot_module import Data
 import pandas as pd
 import numpy as np
+import uproot_methods
 
 
 TREE_NAME = "Delphes"
@@ -15,8 +16,20 @@ def DeltaPhi(phi1,phi2):
     phi[phi < -np.pi] += 2*np.pi
     return phi
 
-def invariant_mass(pt1, pt2, eta1, eta2, phi1, phi2):
-    return np.sqrt(2*pt1*pt2*(np.cosh(eta1 - eta2) - np.cos(phi1 - phi2)))
+def invariant_mass(pt1, pt2, eta1, eta2, phi1, phi2, mass1, mass2):
+    pt1 = pt1.to_numpy()
+    pt2 = pt2.to_numpy()
+    eta1 = eta1.to_numpy()
+    eta2 = eta2.to_numpy()
+    phi1 = phi1.to_numpy()
+    phi2 = phi2.to_numpy()
+    mass1 = mass1.to_numpy()
+    mass2 = mass2.to_numpy()
+
+    lv1 = uproot_methods.TLorentzVectorArray.from_ptetaphim(pt1, eta1, phi1, mass1)
+    lv2 = uproot_methods.TLorentzVectorArray.from_ptetaphim(pt2, eta2, phi2, mass2)
+    
+    return (lv1 + lv2).mass
 
 #============================
 #        Default Cuts
@@ -79,7 +92,8 @@ class VBFDM:
         pt = ("Jet.PT[%d]" % (i) for i in range(N_JETS))
         phi = ("Jet.Phi[%d]" % (i) for i in range(N_JETS))
         eta = ("Jet.Eta[%d]" % (i) for i in range(N_JETS))
-        leafs = (*pt,*phi,*eta,"MissingET.MET","MissingET.Phi")
+        mass = ("Jet.Mass[%d]" % (i) for i in range(N_JETS))
+        leafs = (*pt,*phi,*eta,*mass,"MissingET.MET","MissingET.Phi","MissingET.Eta")
         self.signal = Data(*leafs)
         self.background = Data(*leafs)
 
@@ -103,13 +117,15 @@ class VBFDM:
         # Invariant mass
         n = []
         for i in range(N_JETS):
-            for j in range(N_JETS):
+            for j in range(i+1,N_JETS):
                 fc = lambda df: invariant_mass(df[f"Jet.PT[{i}]"],
                                                df[f"Jet.PT[{j}]"],
                                                df[f"Jet.Eta[{i}]"],
                                                df[f"Jet.Eta[{j}]"],
                                                df[f"Jet.Phi[{i}]"],
-                                               df[f"Jet.Phi[{j}]"])
+                                               df[f"Jet.Phi[{j}]"],
+                                               df[f"Jet.Mass[{i}]"],
+                                               df[f"Jet.Mass[{j}]"])
                 n.append(f"InvMass_J{i}_J{j}")
                 self.add_column(f"InvMass_J{i}_J{j}",fc)
 
