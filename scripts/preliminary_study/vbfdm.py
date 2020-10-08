@@ -174,6 +174,6 @@ class VBFDM:
 
         s1 = pd.Series(dsignal, name="sig", dtype=float)
         s2 = pd.Series(dbackground, name="back", dtype=float)
-        df = pd.concat([s1,s2],axis=1)
+        df = pd.concat([s1, s2], axis=1)
         return df
 
