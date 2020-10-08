@@ -38,15 +38,11 @@ def invariant_mass(pt1, pt2, eta1, eta2, phi1, phi2, mass1, mass2):
 def cut1(df):
     mask = df["HT"] > 200
     df = df.loc[mask, :]
-    return df
 
-def cut2(df):
     # at least two jets per event
     mask = df["Jet.PT[0]"].notnull() & df["Jet.PT[1]"].notnull()
     df = df.loc[mask, :]
-    return df
 
-def cut3(df):
     # pt > 30 GeV and |eta| < 5 for leading and subleading jets
     mask = ((df["Jet.PT[0]"] > 30) &
             (df["Jet.PT[1]"] > 30) &
@@ -55,30 +51,30 @@ def cut3(df):
     df = df.loc[mask, :]
     return df
 
-def cut4(df):
+def cut2(df):
     # leading jets in opposite hemispheres
     mask = df["Jet.Eta[0]"] * df["Jet.Eta[1]"] < 0
     df = df.loc[mask, :]
     return df
 
-def cut5(df):
+def cut3(df):
     # |DeltaPhi| >= 2.3 for leading jets
     mask = abs(df["DPhi_J0_J1"]) > 2.3
     df = df.loc[mask, :]
     return df
 
-def cut6(df):
+def cut4(df):
     #     # max invariant mass >= 1000
     mask = df.max_inv_mass >= 1000
     df = df.loc[mask,:]
     return df
 
-def cut7(df):
+def cut5(df):
     mask = np.abs(df[[f"DPhi_MET_J{i}" for i in range(N_JETS)]] ).min(axis=1) >= 0.5
     df = df.loc[mask, :]
     return df
 
-def cut8(df):
+def cut6(df):
     mask = np.abs(df["Jet.Eta[0]"] - df["Jet.Eta[1]"]) < 2.5
     df = df.loc[mask, :]
     return df
@@ -157,14 +153,12 @@ class VBFDM:
         self.background.addCut(cut_name, cut_func)
 
     def cut_flow(self):
-        cuts = { r'$H_T > 200$': cut1,
-                 r'$N^o Jets \geq 2$': cut2,
-                 r'$P_T(J_i)>30\ \ and\ \eta(J_i)<5\ i=0,1$': cut3,
-                 r'$\eta (J_0)*\eta (J_1) < 0$': cut4,
-                 r'$|\Delta \phi (J_0,J_1)| > 2.3$': cut5,
-                 r'$max(m(J_i,J_j)) > 1000$': cut6,
-                 r'$min(|\Delta\phi(MET,J_i)|) > 0.5,\ i=0...4$': cut7,
-                 r'$|\Delta \eta (J_0,J_1)| < 2.5$': cut8}
+        cuts = { r'$trigger$': cut1,
+                 r'$\eta (J_0)*\eta (J_1) < 0$': cut2,
+                 r'$|\Delta \phi (J_0,J_1)| > 2.3$': cut3,
+                 r'$max(m(J_i,J_j)) > 1000$': cut4,
+                 r'$min(|\Delta\phi(MET,J_i)|) > 0.5,\ i=0...4$': cut5,
+                 r'$|\Delta \eta (J_0,J_1)| < 2.5$': cut6}
 
         for c in cuts:
             self.add_cut(c,cuts[c])
