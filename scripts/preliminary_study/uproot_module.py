@@ -1,6 +1,6 @@
 import re
 import uproot
-import numpy as np
+from numpy import nan
 import pandas as pd
 
 
@@ -58,8 +58,37 @@ class Data:
         self.cuts = {}
 
     def setSignal(self, signal_path, tree_name):
-        self.signal = uproot.open(signal_path)[tree_name]
-        self._setupDataframe()
+        if signal_path.endswith(".csv"):
+            self._dataFrameFromCsv(signal_path)
+        else:
+            self.signal = uproot.open(signal_path)[tree_name]
+            self._setupDataframe()
+
+    def _dataFrameFromCsv(self, signal_path):
+        auxdf = pd.read_csv(signal_path)
+
+        #Create a list with the needed column names for each leaf
+        cnames = []
+        for b in self.branches:
+            for l in b.leafs:
+                name = "{}.{}".format(b.name, l.name)
+                if l.index is not None:
+                    for i in l.index:
+                        aux = name + f"[{i}]"
+                        cnames.append(aux)
+                else:
+                    cnames.append(name)
+
+        # TODO: Test this
+        col = [c for c in auxdf.columns if c in cnames]  # name intersection
+        self.dataframe = auxdf[col]
+
+        if len(col) < len(cnames):
+            col = [c for c in cnames if c not in col]
+            for c in col:
+                self.dataframe[c] = nan
+
+
     
     def _setupDataframe(self):
 
@@ -134,16 +163,16 @@ class Data:
 
 
 
-# def cut1(df):
-#     df = df[df["Jet.PT[0]"]<2000]
-#     return df
-#
-# SIGNAL_PATH = "/home/santiago/VBF_DMSimp_spin0_EWKExcluded/Events/run_18/DMSimpSpin0_MY5000_MX1000_07042020.root"
+def cut1(df):
+    df = df[df["Jet.PT[0]"]<2000]
+    return df
+
+# SIGNAL_PATH = "/home/santiago/VBFDM_UdeA_CMS/scripts/preliminary_study/data/background/ZjetstoNuNuTest_renamed.csv"
 # TREE_NAME = "Delphes"
 #
 # pt = ("Jet.PT[%d]"%(i) for i in range(2))
 # phi = ("Jet.Phi[%d]"%(i) for i in range(2))
-# d = Data(*(*pt,*phi,"MissingET.MET","MissingET.Phi"))
+# d = Data(*(*pt,*phi,"MissingET.MET","MissingET.Phi","test.1"))
 # d.setSignal(SIGNAL_PATH, TREE_NAME)
 #
 # print(d.dataframe.head())
