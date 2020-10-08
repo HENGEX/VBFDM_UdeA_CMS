@@ -55,7 +55,8 @@ class Data:
         self.parseBranches(*leafs)
         self.signal = None
         self.dataframe = None
-        self.cuts = {}
+        self.cuts = {}  # to save the cut functions and their names
+        self.cut_flow = {}  # to save the cut-flow process
 
     def setSignal(self, signal_path, tree_name):
         if signal_path.endswith(".csv"):
@@ -63,6 +64,9 @@ class Data:
         else:
             self.signal = uproot.open(signal_path)[tree_name]
             self._setupDataframe()
+
+        # Initialize the cut-flow dictionary
+        self.cut_flow = {r"$no\ cuts$": self.dataframe.shape[0]}
 
     def _dataFrameFromCsv(self, signal_path):
         auxdf = pd.read_csv(signal_path)
@@ -145,20 +149,29 @@ class Data:
         """
         self.cuts[cutName] = cutFunc
 
-    def cutFlow(self):
+    def cutFlow(self, index=None):
         """
-        Perform the cut-flow
+        Perform an specific cut or all cuts.
+        :param index: If index is None perform all cuts, else perform the cut
+                      with specific index.
         :return: Data frame with cut-flow information
         """
 
-        df = self.dataframe
-        cuts = {r"$no\ cuts$": df.shape[0]}
+        # perform all cuts
+        if index is None:
+            for c in self.cuts:
+                self.dataframe = self.cuts[c](self.dataframe)
+                self.cut_flow[c] = self.dataframe.shape[0]
+        else:
+            if index > 0:
+                # Note: "cut_flow" starts with "no_cuts" key but
+                #       "cuts" starts with the string for the first cut
+                index -= 1
+                k = list(self.cuts.keys())
+                self.dataframe = self.cuts[k[index]](self.dataframe)
+                self.cut_flow[k[index]] = self.dataframe.shape[0]
 
-        for c in self.cuts:
-            df = self.cuts[c](df)
-            cuts[c] = df.shape[0]
-
-        return cuts
+        return self.cut_flow
 
 
 

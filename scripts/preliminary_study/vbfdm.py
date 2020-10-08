@@ -123,10 +123,20 @@ class VBFDM:
                                                df[f"Jet.Mass[{i}]"],
                                                df[f"Jet.Mass[{j}]"])
                 n.append(f"InvMass_J{i}_J{j}")
-                self.add_column(f"InvMass_J{i}_J{j}",fc)
+                self.add_column(f"InvMass_J{i}_J{j}", fc)
 
         fc = lambda df: df[n].max(axis=1)
-        self.add_column("max_inv_mass",fc)
+        self.add_column("max_inv_mass", fc)
+
+        # Set the default cuts
+        cuts = { r'$trigger$': cut1,
+                 r'$\eta (J_0)*\eta (J_1) < 0$': cut2,
+                 r'$|\Delta \phi (J_0,J_1)| > 2.3$': cut3,
+                 r'$max(m(J_i,J_j)) > 1000$': cut4,
+                 r'$min(|\Delta\phi(MET,J_i)|) > 0.5,\ i=0...4$': cut5,
+                 r'$|\Delta \eta (J_0,J_1)| < 2.5$': cut6}
+        for c in cuts:
+            self.add_cut(c, cuts[c])
 
         
 
@@ -152,19 +162,15 @@ class VBFDM:
         self.signal.addCut(cut_name, cut_func)
         self.background.addCut(cut_name, cut_func)
 
-    def cut_flow(self):
-        cuts = { r'$trigger$': cut1,
-                 r'$\eta (J_0)*\eta (J_1) < 0$': cut2,
-                 r'$|\Delta \phi (J_0,J_1)| > 2.3$': cut3,
-                 r'$max(m(J_i,J_j)) > 1000$': cut4,
-                 r'$min(|\Delta\phi(MET,J_i)|) > 0.5,\ i=0...4$': cut5,
-                 r'$|\Delta \eta (J_0,J_1)| < 2.5$': cut6}
-
-        for c in cuts:
-            self.add_cut(c,cuts[c])
-
-        dsignal = self.signal.cutFlow()
-        dbackground = self.background.cutFlow()
+    def cut_flow(self, index=None):
+        """
+        Perform an specific cut or all cuts.
+        :param index: If index is None perform all cuts, else perform the cut
+                      with specific index.
+        :return: dataframe with the current cut-flow
+        """
+        dsignal = self.signal.cutFlow(index)
+        dbackground = self.background.cutFlow(index)
 
         s1 = pd.Series(dsignal, name="sig", dtype=float)
         s2 = pd.Series(dbackground, name="back", dtype=float)
