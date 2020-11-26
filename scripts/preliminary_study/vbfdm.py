@@ -71,6 +71,7 @@ def cut4(df):
 
 def cut5(df):
     mask = np.abs(df[[f"DPhi_MET_J{i}" for i in range(N_JETS)]] ).min(axis=1) >= 0.5
+    #mask = df["|MinDPhiMetJets|"] >= 0.5
     df = df.loc[mask, :]
     return df
 
@@ -80,6 +81,15 @@ def cut6(df):
     return df
 
 
+
+def delta_phi_met_jet(df):
+        #returns minimum deltaPhi between jets and met
+        aux_df = pd.DataFrame(index=np.arange(len(df)))
+        for i in range(N_JETS):
+          aux_df[f"{i}"] = np.abs(DeltaPhi(df["MissingET.Phi"], df[f"Jet.PT[{i}]"]))
+
+        return aux_df.min(axis=1)
+      
 
 class VBFDM:
 
@@ -107,7 +117,7 @@ class VBFDM:
         self.add_column("DPhi_J0_J1", fc)
 
         for i in range(N_JETS):
-            fc = lambda df: DeltaPhi(df[f"Jet.Phi[{i}]"], df["MissingET.Phi"])
+            fc = lambda df: DeltaPhi(df["MissingET.Phi"], df[f"Jet.Phi[{i}]"])
             self.add_column(f"DPhi_MET_J{i}", fc)
 
         # Invariant mass
@@ -127,6 +137,9 @@ class VBFDM:
 
         fc = lambda df: df[n].max(axis=1)
         self.add_column("max_inv_mass", fc)
+
+        #TEST
+        self.add_column("|MinDPhiMetJets|", delta_phi_met_jet)
 
         # Set the default cuts
         cuts = { r'$trigger$': cut1,
