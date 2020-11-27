@@ -138,6 +138,9 @@ class VBFDM:
         fc = lambda df: df[n].max(axis=1)
         self.add_column("max_inv_mass", fc)
 
+        fc = lambda df: df[n].idxmax(axis=1).str.findall('[0-9]+')
+        self.add_column("max",fc)
+
         #TEST
         self.add_column("|MinDPhiMetJets|", delta_phi_met_jet)
 
