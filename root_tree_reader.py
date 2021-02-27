@@ -3,9 +3,7 @@
 
 import uproot
 import awkward
-import numpy as np
 import pandas as pd
-import uproot_methods
 
 class RootTreeReader:
 
@@ -79,5 +77,5 @@ class RootTreeReader:
         df.reset_index(drop=True, level=1, inplace=True)
         dataframe = dataframe.join(df)
     
-    self.dataframe = _set_columns_names(dataframe)
+    self.dataframe = self._set_columns_names(dataframe)
     return self.dataframe
