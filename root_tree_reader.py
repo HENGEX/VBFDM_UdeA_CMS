@@ -9,6 +9,24 @@ import uproot_methods
 
 class RootTreeReader:
 
+  """ 
+  Read and load data from a ROOT tree to a Pandas DataFrame
+
+  Parameters:
+  -----------
+  path : string
+      Path to the ROOT tree
+
+  branches : array-like
+      Branches to load from the ROOT tree
+
+  n_values : int (default=4)
+      Number of values to load from multiple value leaves.
+
+  tree_name : string (default=Delphes)
+      Name of the ROOT tree
+  """
+
   def __init__(self, 
                path: str, 
                branches: list = None,
