@@ -32,11 +32,6 @@ class RootTreeReader:
     self.branches = branches
 
 
-  def _get_branch(self, branch) -> pd.DataFrame:
-    """read and load a ROOT-tree branch into a pandas DataFrame"""
-    with uproot.open(self.path)[self.tree_name] as tree: 
-      return tree.arrays(branch, library="pd")
-
   @property
   def display_tree(self):
     """Displays the ROOT-tree names"""
@@ -48,6 +43,11 @@ class RootTreeReader:
     """returns the number of events in the ROOT-tree"""
     with uproot.open(self.path)[self.tree_name] as tree:
       return tree.num_entries 
+
+  def _get_branch(self, branch) -> pd.DataFrame:
+    """read and load a ROOT-tree branch into a pandas DataFrame"""
+    with uproot.open(self.path)[self.tree_name] as tree: 
+      return tree.arrays(branch, library="pd")
 
   def data(self) -> pd.DataFrame:
     """returns a pd.DataFrame with branches data"""
