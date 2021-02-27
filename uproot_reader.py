@@ -4,14 +4,22 @@ import numpy as np
 import pandas as pd
 import uproot_methods
 
-class ROOTTreeReader:
+class RootTreeReader:
 
   # number of values to read from a jagged branch
   N_VALUES = 4
 
-  def __init__(self, path: str, branches: list = None, tree_name: str = "Delphes"):
+  def __init__(
+    self, 
+    path: str, 
+    branches: list = None,
+    n_values: int = 4, 
+    tree_name: str = "Delphes"
+    ):
+
     self.path = path
     self.tree_name = tree_name
+    self.n_values = n_values
     self.branches = branches
 
   def _read_tree_branch(self, branch):
@@ -39,8 +47,8 @@ class ROOTTreeReader:
     for branch in self.branches:
       df = self._read_tree_branch(branch)
       if df.index.get_level_values("subentry").any():
-        df = df.unstack().iloc[:,:self.N_VALUES]
-        df.columns = [f"{branch}{i}" for i in range(self.N_VALUES)]
+        df = df.unstack().iloc[:,:self.n_values]
+        df.columns = [f"{branch}{i}" for i in range(self.n_values)]
         dataframe = dataframe.join(df)
       else:
         df.reset_index(drop=True, level=1, inplace=True)
