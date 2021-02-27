@@ -7,15 +7,6 @@ import numpy as np
 import pandas as pd
 import uproot_methods
 
-
-def set_columns_names(df):
-  """
-  changes the columns of a DataFrame to be lower case 
-  and also replace dots for underscores
-  """
-  df.columns = df.columns.str.lower().str.replace(".","_")
-  return df
-
 class RootTreeReader:
 
   def __init__(
@@ -43,6 +34,15 @@ class RootTreeReader:
     """returns the number of events in the ROOT-tree"""
     with uproot.open(self.path)[self.tree_name] as tree:
       return tree.num_entries 
+
+  @staticmethod
+  def set_columns_names(df):
+    """
+    changes the columns of a DataFrame to be lower case 
+    and also replace dots for underscores
+    """
+    df.columns = df.columns.str.lower().str.replace(".","_")
+    return df
 
   def _get_branch(self, branch) -> pd.DataFrame:
     """read and load a ROOT-tree branch into a pandas DataFrame"""
