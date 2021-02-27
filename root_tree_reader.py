@@ -63,8 +63,8 @@ class RootTreeReader:
     with uproot.open(self.path)[self.tree_name] as tree: 
       return tree.arrays(branch, library="pd")
 
-  def data(self) -> pd.DataFrame:
-    """returns a pd.DataFrame with branches data"""
+  def get_dataframe(self) -> pd.DataFrame:
+    """returns a pd.DataFrame with branches as columns"""
     dataframe = pd.DataFrame(index=range(self.num_entries))
 
     for branch in self.branches:
