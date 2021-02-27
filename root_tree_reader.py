@@ -77,5 +77,4 @@ class RootTreeReader:
         df.reset_index(drop=True, level=1, inplace=True)
         dataframe = dataframe.join(df)
     
-    self.dataframe = self._set_columns_names(dataframe)
-    return self.dataframe
+    return self._set_columns_names(dataframe)
