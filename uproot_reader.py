@@ -1,13 +1,22 @@
+# using uproot4 as uproot
+# using awkward1 as awkward 
+
 import uproot
 import awkward
 import numpy as np
 import pandas as pd
 import uproot_methods
 
-class RootTreeReader:
 
-  # number of values to read from a jagged branch
-  N_VALUES = 4
+def set_columns_names(df):
+  """
+  changes the columns of a DataFrame to be lower case 
+  and also replace dots for underscores
+  """
+  df.columns = df.columns.str.lower().str.replace(".","_")
+  return df
+
+class RootTreeReader:
 
   def __init__(
     self, 
@@ -22,30 +31,30 @@ class RootTreeReader:
     self.n_values = n_values
     self.branches = branches
 
-  def _read_tree_branch(self, branch):
-    """reads the ROOT tree branches"""
+
+  def _get_branch(self, branch) -> pd.DataFrame:
+    """read and load a ROOT-tree branch into a pandas DataFrame"""
     with uproot.open(self.path)[self.tree_name] as tree: 
       return tree.arrays(branch, library="pd")
 
   @property
   def display_tree(self):
-    """Displays the tree names"""
+    """Displays the ROOT-tree names"""
     with uproot.open(self.path)[self.tree_name] as tree:
       return tree.show()
 
   @property
-  def num_entries(self):
-    """Number of events in the ROOT tree"""
+  def num_entries(self) -> int:
+    """returns the number of events in the ROOT-tree"""
     with uproot.open(self.path)[self.tree_name] as tree:
       return tree.num_entries 
 
-  @property
-  def data(self):
+  def data(self) -> pd.DataFrame:
     """returns a pd.DataFrame with branches data"""
     dataframe = pd.DataFrame(index=range(self.num_entries))
 
     for branch in self.branches:
-      df = self._read_tree_branch(branch)
+      df = self._get_branch(branch)
       if df.index.get_level_values("subentry").any():
         df = df.unstack().iloc[:,:self.n_values]
         df.columns = [f"{branch}{i}" for i in range(self.n_values)]
