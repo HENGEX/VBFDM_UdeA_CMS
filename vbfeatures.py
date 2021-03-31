@@ -57,22 +57,25 @@ class VBFeatures(RootTreeReader):
     """
     returns a dataframe with met and jet features
     """
-        self.get_branches(self.BRANCHES)
-        self.masses = masses(self.tree)
+    self.get_branches(self.BRANCHES)
+    self._masses = masses(self.tree)
 
-        self._jet_pt_scalar_sum()
-        self._delta_eta_leading_jets()
-        self._delta_phi_leading_jets()
-        self._delta_phi_met_jet()
-        self._invariant_mass()
-        self._maximum_invariant_mass()
-        self._maximum_invariant_mass_index()
-        self._delta_eta_max()
-        self._delta_phi_max()
+    self._jet_pt_scalar_sum()
+    self._delta_eta_leading_jets()
+    self._delta_phi_leading_jets()
+    self._max_delta_eta()
+    self._max_delta_phi()
+    self._delta_phi_met_jet()
+    self._invariant_mass()
+    self._maximum_invariant_mass()
+    self._maximum_invariant_mass_index()
+    self._delta_eta_max()
+    self._delta_phi_max()
 
     return self._dataframe
 
   def _add_column(self, col, name):
+    """adds a column to self._dataframe"""
     self._dataframe[name] = col
 
   def _jet_pt_scalar_sum(self):
@@ -86,6 +89,22 @@ class VBFeatures(RootTreeReader):
   def _delta_phi_leading_jets(self):
     """absolute difference on azimuthal angle between leading jets"""
     self._add_column(DeltaPhi(self._dataframe.jet_phi0 - self._dataframe.jet_phi1), "DeltaPhiJets")
+
+  def _max_delta_eta(self):
+    """maximum absolute difference on pseudorapidity"""
+    j1, j2 = jet_pairs(self.tree)
+    max_delta = np.abs(j1.Eta - j2.Eta)
+    max_delta = awkward.to_pandas(max_delta).unstack()
+
+    self._add_column(max_delta.max(axis=1), "MaxDeltaEtaJets")
+
+  def _max_delta_phi(self):
+    """maximum absolute difference on azimuthal angle"""
+    j1,j2 = jet_pairs(self.tree)
+    max_phi = j1.Phi - j2.Phi
+    max_phi = awkward.to_pandas(max_phi).unstack().apply(DeltaPhi)
+    
+    self._add_column(max_phi.max(axis=1), "MaxDeltaPhiJets")
                   
   def _delta_phi_met_jet(self):
     """minimum absolute difference on azimuthal angle between met and jets"""
@@ -97,17 +116,17 @@ class VBFeatures(RootTreeReader):
 
   def _invariant_mass(self):
     """invariant mass for leading jets"""
-    self._add_column(self.masses.loc[:,0], "InvMass")
+    self._add_column(self._masses.loc[:,0], "InvMass")
 
   def _maximum_invariant_mass(self):
     """maximum invariant mass"""
-    self._add_column(np.max(self.masses, axis=1), "MaxInvMass")
+    self._add_column(np.max(self._masses, axis=1), "MaxInvMass")
 
   def _maximum_invariant_mass_index(self):
     """index of jets with maximum invariant mass"""
-    index_map = dict(zip(range(6), [*combinations([0,1, 2, 3], 2, )]))
+    index_map = dict(zip(range(6), [*combinations([0,1, 2, 3], 2)]))
 
-    self.max_index = self.masses.idxmax(axis=1).map(index_map)
+    self.max_index = self._masses.idxmax(axis=1).map(index_map)
     
     self._add_column(self.max_index, "MaxInvIndex")
 
@@ -117,7 +136,7 @@ class VBFeatures(RootTreeReader):
     for row, (i,j) in enumerate(self.max_index):
       eta.append(np.abs(self._dataframe.loc[row, f"jet_eta{i}"] - self._dataframe.loc[row, f"jet_eta{j}"]))
 
-    self._add_column(eta, "MaxDeltaEtaJets")
+    self._add_column(eta, "DeltaEtaJetsMax")
 
   def _delta_phi_max(self):
     """absolute difference on azimuthal angle between jets with maximum invariant mass"""
@@ -125,4 +144,4 @@ class VBFeatures(RootTreeReader):
     for row, (i,j) in enumerate(self.max_index):
       phi.append(self._dataframe.loc[row, f"jet_phi{i}"] - self._dataframe.loc[row, f"jet_phi{j}"])
       
-    self._add_column(DeltaPhi(np.array(phi)), "MaxDeltaPhiJets")
+    self._add_column(DeltaPhi(np.array(phi)), "DeltaPhiJetsMax")
