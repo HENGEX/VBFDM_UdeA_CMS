@@ -1,26 +1,21 @@
+# -*- coding: utf-8 -*-
+
+from root_tree_reader import *
 from itertools import combinations
 
 def jet_pairs(tree):
-    """
-    returns a tuple to form every combination of jets
+  # zipping jet events 
+  jet_events = tree.arrays(["Jet.PT","Jet.Eta","Jet.Phi","Jet.Mass"], how="zip")
 
-    Parameters:
-    tree: ROOT TTree
-    """
-    # zipping jet events 
-    jet_events = tree.arrays(["Jet.PT","Jet.Eta","Jet.Phi","Jet.Mass"], how="zip")
+  # combinations of jets without replacement
+  jet_pairs = awkward.combinations(jet_events.Jet, 2)
 
-    # combinations of two jets without replacement
-    jet_pairs = awkward.combinations(jet_events.Jet, 2)
-
-    return awkward.unzip(jet_pairs)
+  # tuple of pair of jets
+  return awkward.unzip(jet_pairs)
 
 def masses(tree):
     """
-    returns the invariant mass of every pair of the four leading jets
-
-    Parameters:
-    tree: ROOT TTree 
+    invariant mass of every pair of jets 
     """
     j1, j2 = jet_pairs(tree)
     jet_mass = np.sqrt(2*j1.PT*j2.PT*(np.cosh(j1.Eta - j2.Eta) - np.cos(j1.Phi - j2.Phi)))
@@ -31,33 +26,30 @@ def masses(tree):
     return masses.iloc[:,:6]
 
 def DeltaPhi(phi):
-    """returns a correction on the azimuthal angle"""
-    phi[phi >= np.pi] -= 2*np.pi
-    phi[phi < -np.pi] += 2*np.pi
+  phi[phi >= np.pi] -= 2*np.pi
+  phi[phi < -np.pi] += 2*np.pi
 
-    return np.abs(phi) 
-
+  return np.abs(phi) 
 
 class VBFeatures(RootTreeReader):
 
-  BRANCHES = ["MissingET.MET", 
-              "MissingET.Eta",
-              "MissingET.Phi",
-              "Jet.PT",
-              "Jet.Eta",
-              "Jet.Phi",
-              "Jet.Mass",
-              "Jet_size"]
-
   def __init__(self, path, tree_name="Delphes"):
     super().__init__(path, tree_name)
-
   
   def get_dataframe(self):
-    """
-    returns a dataframe with met and jet features
-    """
-    self.get_branches(self.BRANCHES)
+    """returns a dataframe with met and jet features"""
+
+    vbf_branches = ["MissingET.MET",
+                    "MissingET.Eta",
+                    "MissingET.Phi",
+                    "Jet.PT",
+                    "Jet.Eta",
+                    "Jet.Phi",
+                    "Jet.Mass",
+                    "Jet_size"]
+
+    self.get_branches(vbf_branches)
+
     self._masses = masses(self.tree)
 
     self._jet_pt_scalar_sum()
@@ -72,23 +64,22 @@ class VBFeatures(RootTreeReader):
     self._delta_eta_max()
     self._delta_phi_max()
 
-    return self._dataframe
+    return self.dataframe
 
   def _add_column(self, col, name):
-    """adds a column to self._dataframe"""
-    self._dataframe[name] = col
+    self.dataframe[name] = col
 
   def _jet_pt_scalar_sum(self):
     """scalar sum of transverse momenta (four jets)"""
-    self._add_column(self._dataframe[["jet_pt0","jet_pt1","jet_pt2","jet_pt3"]].sum(axis=1), "H")
+    self._add_column(self.dataframe[["jet_pt0","jet_pt1","jet_pt2","jet_pt3"]].sum(axis=1), "H")
 
   def _delta_eta_leading_jets(self):
     """absolute difference on pseudorapidity between leading jets"""
-    self._add_column(np.abs(self._dataframe.jet_eta0 - self._dataframe.jet_eta1), "DeltaEtaJets")
+    self._add_column(np.abs(self.dataframe.jet_eta0 - self.dataframe.jet_eta1), "DeltaEtaJets")
 
   def _delta_phi_leading_jets(self):
     """absolute difference on azimuthal angle between leading jets"""
-    self._add_column(DeltaPhi(self._dataframe.jet_phi0 - self._dataframe.jet_phi1), "DeltaPhiJets")
+    self._add_column(DeltaPhi(self.dataframe.jet_phi0 - self.dataframe.jet_phi1), "DeltaPhiJets")
 
   def _max_delta_eta(self):
     """maximum absolute difference on pseudorapidity"""
@@ -108,9 +99,9 @@ class VBFeatures(RootTreeReader):
                   
   def _delta_phi_met_jet(self):
     """minimum absolute difference on azimuthal angle between met and jets"""
-    aux_df = pd.DataFrame(index=np.arange(len(self._dataframe)))
+    aux_df = pd.DataFrame(index=np.arange(len(self.dataframe)))
     for i in range(4):
-      aux_df[f"{i}"] = self._dataframe[f"jet_phi{i}"] - self._dataframe["missinget_phi"]
+      aux_df[f"{i}"] = self.dataframe[f"jet_phi{i}"] - self.dataframe["missinget_phi"]
 
     self._add_column(DeltaPhi(aux_df.min(axis=1)), "MinDeltaPhiMetJet")
 
@@ -134,7 +125,7 @@ class VBFeatures(RootTreeReader):
     """absolute difference on pseudorapidity between jets with maximum invariant mass"""
     eta = []
     for row, (i,j) in enumerate(self.max_index):
-      eta.append(np.abs(self._dataframe.loc[row, f"jet_eta{i}"] - self._dataframe.loc[row, f"jet_eta{j}"]))
+      eta.append(np.abs(self.dataframe.loc[row, f"jet_eta{i}"] - self.dataframe.loc[row, f"jet_eta{j}"]))
 
     self._add_column(eta, "DeltaEtaJetsMax")
 
@@ -142,6 +133,6 @@ class VBFeatures(RootTreeReader):
     """absolute difference on azimuthal angle between jets with maximum invariant mass"""
     phi = []
     for row, (i,j) in enumerate(self.max_index):
-      phi.append(self._dataframe.loc[row, f"jet_phi{i}"] - self._dataframe.loc[row, f"jet_phi{j}"])
+      phi.append(self.dataframe.loc[row, f"jet_phi{i}"] - self.dataframe.loc[row, f"jet_phi{j}"])
       
     self._add_column(DeltaPhi(np.array(phi)), "DeltaPhiJetsMax")
