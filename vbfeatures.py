@@ -55,26 +55,7 @@ class VBFeatures(RootTreeReader):
   
   def get_dataframe(self):
     """
-    return a dataframe with multiple features from
-    missing transverse energy (met) and jets
-
-    missinget_met:      missing transverse energy
-    missinget_eta:      met pseudorapidity
-    missinget_phi:      met azimuthal angle
-    jet_ptj:            transverse momentum of the j-th jet
-    jet_etaj:           pseudorapidity of the j-th jet
-    jet_phij:           azimuthal angle of the j-th jet
-    jet_massj:          mass of the j-th jet
-    jet_size:           number of jets
-    H:                  scalar sum of transverse momenta for the leading four jets
-    DeltaEtaJets:       difference on pseudorapidity for the leading jets
-    DeltaPhiJets:       difference on azimuthal angle for the leading jets
-    MinDeltaPhiMetJet:  difference on azimuthal angle between met and jets
-    InvMass:            invariant mass (invm) for the leading jets
-    MaxInvMass:         maximum invm
-    MaxInvIndex:        index of the jets with maximum invm
-    MaxDeltaEtaJets:    difference on pseudorapidity for the jets with maximum invm
-    MaxDeltaPhiJets:    difference on azimuthal angle for the jets with maximum invm
+    returns a dataframe with met and jet features
     """
         self.get_branches(self.BRANCHES)
         self.masses = masses(self.tree)
