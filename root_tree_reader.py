@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# using uproot4 as uproot
-# using awkward1 as awkward 
+# using uproot4 as uproot (4.0.6)
+# using awkward1 as awkward (ak 1.1.2 & ak1 1.0.0)
 
 import numpy as np
 import pandas as pd

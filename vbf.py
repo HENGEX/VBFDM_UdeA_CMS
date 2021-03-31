@@ -20,10 +20,18 @@ def masses(tree):
     j1, j2 = jet_pairs(tree)
     jet_mass = np.sqrt(2*j1.PT*j2.PT*(np.cosh(j1.Eta - j2.Eta) - np.cos(j1.Phi - j2.Phi)))
 
-    masses = awkward.to_pandas(jet_mass).unstack()
-    masses.columns = np.arange(len(masses.columns))
+    # list representation to look for empty values 
+    jet_mass = awkward.to_list(jet_mass)
+    
+    for mass in jet_mass:
+        if not mass:
+            mass.append(np.nan)
+    
+    # pandas representation
+    jet_mass = awkward.to_pandas(jet_mass).unstack()
+    jet_mass.columns = np.arange(len(jet_mass.columns))
 
-    return masses.iloc[:,:6]
+    return jet_mass.iloc[:,:6]
 
 def DeltaPhi(phi):
   phi[phi >= np.pi] -= 2*np.pi
@@ -31,7 +39,8 @@ def DeltaPhi(phi):
 
   return np.abs(phi) 
 
-class VBFeatures(RootTreeReader):
+
+class VBF(RootTreeReader):
 
   def __init__(self, path, tree_name="Delphes"):
     super().__init__(path, tree_name)
@@ -124,15 +133,27 @@ class VBFeatures(RootTreeReader):
   def _delta_eta_max(self):
     """absolute difference on pseudorapidity between jets with maximum invariant mass"""
     eta = []
-    for row, (i,j) in enumerate(self.max_index):
-      eta.append(np.abs(self.dataframe.loc[row, f"jet_eta{i}"] - self.dataframe.loc[row, f"jet_eta{j}"]))
+    for row, index in enumerate(self.max_index):
+      if not isinstance(index, type(np.nan)):
+        eta.append(np.abs(self.dataframe.loc[row, f"jet_eta{index[0]}"] - self.dataframe.loc[row, f"jet_eta{index[1]}"]))
+      else:
+        eta.append(None)
 
     self._add_column(eta, "DeltaEtaJetsMax")
 
   def _delta_phi_max(self):
     """absolute difference on azimuthal angle between jets with maximum invariant mass"""
-    phi = []
-    for row, (i,j) in enumerate(self.max_index):
-      phi.append(self.dataframe.loc[row, f"jet_phi{i}"] - self.dataframe.loc[row, f"jet_phi{j}"])
-      
-    self._add_column(DeltaPhi(np.array(phi)), "DeltaPhiJetsMax")
+    phi, nan_phi = {}, {}
+    for row, index in enumerate(self.max_index):
+      if not isinstance(index, type(np.nan)):
+        phi[row] = self.dataframe.loc[row, f"jet_phi{index[0]}"] - self.dataframe.loc[row, f"jet_phi{index[1]}"]
+      else:
+        nan_phi[row] = np.nan
+  
+    phi = DeltaPhi(pd.Series(phi))
+
+    if nan_phi:
+      nan_phi = pd.Series(nan_phi)
+      self._add_column(pd.concat([phi, nan_phi]).sort_index(), "DeltaPhiJetsMax")
+    else:
+      self._add_column(phi, "DeltaPhiJetsMax")
