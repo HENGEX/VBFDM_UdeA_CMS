@@ -1,0 +1,21 @@
+----------------------------------------------------------------------------------
+FEATURE DESCRIPTION OF THE VBFDM_UDEA DATASET
+----------------------------------------------------------------------------------
+
+missinget_met:      missing transverse energy
+missinget_eta:      met pseudorapidity
+missinget_phi:      met azimuthal angle
+jet_ptj:            transverse momentum of the j-th jet
+jet_etaj:           pseudorapidity of the j-th jet
+jet_phij:           azimuthal angle of the j-th jet
+jet_massj:          mass of the j-th jet
+jet_size:           number of jets
+H:                  scalar sum of jet ransverse momenta (four jets)
+DeltaEtaJets:       difference on pseudorapidity for the leading jets
+DeltaPhiJets:       difference on azimuthal angle for the leading jets
+MinDeltaPhiMetJet:  difference on azimuthal angle between met and jets
+InvMass:            invariant mass for the leading jets
+MaxInvMass:         maximum invariant mass
+MaxInvIndex:        index of the jets with maximum invariant mass
+MaxDeltaEtaJets:    difference on pseudorapidity for the jets with maximum invariant mass
+MaxDeltaPhiJets:    difference on azimuthal angle for the jets with maximum invariant mass
