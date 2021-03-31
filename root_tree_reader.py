@@ -12,7 +12,6 @@ class RootTreeReader:
   Read data from a ROOT tree
 
   Parameters:
-  -----------
   path : string
     Path to the ROOT tree
 
@@ -31,6 +30,7 @@ class RootTreeReader:
     """
     returns a tree branch element 
 
+    Parameters:
     branch: string
       Branch to load from the ROOT tree
 
@@ -47,17 +47,17 @@ class RootTreeReader:
     """
     returns a pandas dataFrame with branches as columns
 
+    Parameters:
     branches : array-like
       Branches to load from the ROOT tree
 
     n_values : int (default=4)
       Number of values to load from jagged arrays
     """
-    self.branches = branches
     self.n_values = n_values
     self.dataframe = pd.DataFrame(index=range(self.tree.num_entries))
 
-    for branch in self.branches:
+    for branch in branches:
       if type(self.tree[branch]) is uproot.models.TBranch.Model_TBranch_v13:
         self._add_branch(branch)
       else:
@@ -85,14 +85,11 @@ class RootTreeReader:
     """adds a branch to self.dataframe"""
     if not name:
       name = branch.lower()
-
     self.dataframe[name] = self.tree[branch].array(library="pd")
 
 
   @staticmethod
   def _set_columns_names(df):
-    """
-    changes the column names of self.dataFrame
-    """
+    """changes the column names of self.dataFrame"""
     df.columns = df.columns.str.lower().str.replace(".","_")
     return df
