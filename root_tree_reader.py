@@ -57,12 +57,12 @@ class RootTreeReader:
 
 
   def _add_branch(self, df, branch: str):
-    """adds a non-jagged branch to self.dataframe"""
+    """adds a non-jagged branch to self.df"""
     self._df[branch] = self.tree[branch].array(library="pd").values
 
 
   def _add_jagged_branch(self, df, branch):
-    """adds a jagged branch to self.dataframe"""
+    """adds a jagged branch to self.df"""
     df = df.unstack().iloc[:,:self._max_elements]
     df.columns = [f"{branch}{i}" for i in range(self._max_elements)]
     self._df = self._df.join(df)
