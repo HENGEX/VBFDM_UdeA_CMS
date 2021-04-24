@@ -1,4 +1,4 @@
-from root_tree_reader import *
+from root_tree_reader import RootTreeReader
 from itertools import combinations
 
 

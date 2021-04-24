@@ -50,19 +50,22 @@ class RootTreeReader:
     """joins a branch to self._df"""
     df = self.tree.arrays(branch, library="pd")
 
-    if len(df) > self.tree.num_entries:
-      self._add_jagged_branch(df, branch)
+    if "." in branch:
+      if len(df) > len(df.groupby(level=0).size()):
+        self._add_jagged_branch(df, branch)
+      else:
+        self._add_branch(df, branch)
     else:
       self._add_branch(df, branch)
 
 
   def _add_branch(self, df, branch: str):
-    """adds a non-jagged branch to self.df"""
+    """adds a non-jagged branch to self.dataframe"""
     self._df[branch] = self.tree[branch].array(library="pd").values
 
 
   def _add_jagged_branch(self, df, branch):
-    """adds a jagged branch to self.df"""
+    """adds a jagged branch to self.dataframe"""
     df = df.unstack().iloc[:,:self._max_elements]
     df.columns = [f"{branch}{i}" for i in range(self._max_elements)]
     self._df = self._df.join(df)
